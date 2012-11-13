@@ -1,0 +1,81 @@
+<project>
+  <Metadata>
+    <metadata>
+      <PackageName>NewsMover</PackageName>
+      <Author>Sitecore Shared Source</Author>
+      <Version>2.0</Version>
+      <Revision />
+      <License>&lt;a href="http://sdn.sitecore.net/resources/shared%20source/shared%20source%20license.aspx"&gt;http://sdn.sitecore.net/resources/shared%20source/shared%20source%20license.aspx&lt;/a&gt;</License>
+      <Comment />
+      <Attributes />
+      <Readme>http://trac.sitecore.net/NewsMover</Readme>
+      <Publisher />
+      <PostStep />
+      <PackageID />
+    </metadata>
+  </Metadata>
+  <SaveProject>True</SaveProject>
+  <Sources>
+    <xitems>
+      <Entries>
+        <x-item>/master/sitecore/templates/User Defined/NewsArticle/{2C6038B4-A433-45FB-9CEB-A0F8C5DE3D54}/invariant/0</x-item>
+        <x-item>/master/sitecore/templates/User Defined/NewsArticle/News/{0AB0290E-2517-4F71-9D20-495EB94D07F3}/invariant/0</x-item>
+        <x-item>/master/sitecore/templates/User Defined/NewsArticle/News/ReleaseDate/{6CBC4750-305C-4077-83E2-EC6AF881EEBC}/invariant/0</x-item>
+        <x-item>/master/sitecore/templates/User Defined/Event/{C8E0FA93-126E-46FA-9775-4611378BB625}/invariant/0</x-item>
+        <x-item>/master/sitecore/templates/User Defined/Event/News/{286C3B83-D538-4FFF-A377-EE64C7D0AC22}/invariant/0</x-item>
+        <x-item>/master/sitecore/templates/User Defined/Event/News/EventDate/{AD39695E-5842-4320-AAD5-1881E796777E}/invariant/0</x-item>
+      </Entries>
+      <SkipVersions>False</SkipVersions>
+      <Converter>
+        <ItemToEntryConverter>
+          <Transforms>
+            <InstallerConfigurationTransform>
+              <Options>
+                <BehaviourOptions>
+                  <ItemMode>Undefined</ItemMode>
+                  <ItemMergeMode>Undefined</ItemMergeMode>
+                </BehaviourOptions>
+              </Options>
+            </InstallerConfigurationTransform>
+          </Transforms>
+        </ItemToEntryConverter>
+      </Converter>
+      <Include />
+      <Exclude />
+      <Name>NewsArticleDataTemplate</Name>
+    </xitems>
+    <xfiles>
+      <Entries>
+        <x-item>/App_Config/Include/NewsMover.config</x-item>
+        <x-item>/bin/Sitecore.Sharedsource.NewsMover.dll</x-item>
+        <x-item>/bin/Sitecore.Sharedsource.NewsMover.pdb</x-item>
+      </Entries>
+      <Converter>
+        <FileToEntryConverter>
+          <Root>/</Root>
+          <Transforms>
+            <InstallerConfigurationTransform>
+              <Options>
+                <BehaviourOptions>
+                  <ItemMode>Undefined</ItemMode>
+                  <ItemMergeMode>Undefined</ItemMergeMode>
+                </BehaviourOptions>
+              </Options>
+            </InstallerConfigurationTransform>
+          </Transforms>
+        </FileToEntryConverter>
+      </Converter>
+      <Include />
+      <Exclude />
+      <Name>NewsMoverFiles</Name>
+    </xfiles>
+  </Sources>
+  <Converter>
+    <TrivialConverter>
+      <Transforms />
+    </TrivialConverter>
+  </Converter>
+  <Include />
+  <Exclude />
+  <Name />
+</project>
