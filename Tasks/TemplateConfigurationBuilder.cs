@@ -35,6 +35,7 @@ namespace Sitecore.Sharedsource.Tasks
             string monthTemplate = null, monthFormat = null;
             string dayTemplate = null, dayFormat = null;
             string dateField = configNode["DateField"].InnerText;
+            string roots = "";
 
             Sitecore.Diagnostics.Assert.IsNotNullOrEmpty(template, "Template");
             Sitecore.Diagnostics.Assert.IsNotNullOrEmpty(yearTemplate, "YearTemplate");
@@ -61,6 +62,11 @@ namespace Sitecore.Sharedsource.Tasks
                 dayFormat = configNode["DayTemplate"].GetAttributeWithDefault("formatString", "dd");
             }
 
+            if (configNode["Roots"] != null)
+            {
+                roots = configNode["Roots"].InnerText;                
+            }
+
 
             string sort = configNode.GetAttributeWithDefault("sort", null);
             SortOrder s = SortOrder.None;
@@ -69,7 +75,7 @@ namespace Sitecore.Sharedsource.Tasks
                 s.TryParse(sort, true, out s);
             }
 
-            return new TemplateConfiguration(database, template, dateField, yearTemplate, monthTemplate, dayTemplate, s, yearFormat, monthFormat, dayFormat);
+            return new TemplateConfiguration(database, template, dateField, yearTemplate, monthTemplate, dayTemplate, s, yearFormat, monthFormat, dayFormat,roots);
         }
     }
 }
