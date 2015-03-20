@@ -19,6 +19,7 @@ namespace Sitecore.Sharedsource.Tasks
     using Sitecore.Pipelines;
     using Sitecore.Sharedsource.NewsMover;
     using Sitecore.Sharedsource.NewsMover.Pipelines;
+    using System.Linq;
 
     public class NewsMover
     {
@@ -126,8 +127,17 @@ namespace Sitecore.Sharedsource.Tasks
 
             _inProcess.Add(item.ID);
             TemplateConfiguration config = Templates[item.TemplateID];
-            DateTime articleDate = EnsureAndGetDate(item, config.DateField);
-            OrganizeItem(item, config, articleDate);
+            bool organize = true;
+            if (config.Roots != null && config.Roots.Count > 0)
+            {
+                organize = config.Roots.Any(x => x.Axes.IsAncestorOf(item));
+            }
+
+            if (organize)
+            {
+                DateTime articleDate = EnsureAndGetDate(item, config.DateField);
+                OrganizeItem(item, config, articleDate);
+            }
             _inProcess.Remove(item.ID);
         }
 
@@ -213,6 +223,15 @@ namespace Sitecore.Sharedsource.Tasks
                 if (config.DayFolder != null)
                 {
                     root = GetOrCreateChild(root, config.DayFolder.Template, config.DayFolder.GetName(articleDate), config.SortOrder);
+                    if (config.HourFolder != null)
+                    {
+                        root = GetOrCreateChild(root, config.HourFolder.Template, config.HourFolder.GetName(articleDate), config.SortOrder);
+
+                        if (config.MinuteFolder != null)
+                        {
+                            root = GetOrCreateChild(root, config.MinuteFolder.Template, config.MinuteFolder.GetName(articleDate), config.SortOrder);
+                        }
+                    }
                 }
             }
 
