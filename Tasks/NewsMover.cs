@@ -14,18 +14,18 @@ namespace Sitecore.Sharedsource.Tasks
     using System;
     using System.Collections.Generic;
     using System.Xml;
-    using Sitecore.Data;
-    using Sitecore.Data.Items;
-    using Sitecore.Pipelines;
-    using Sitecore.Sharedsource.NewsMover;
-    using Sitecore.Sharedsource.NewsMover.Pipelines;
+    using Data;
+    using Data.Items;
+    using Pipelines;
+    using Sharedsource.NewsMover;
+    using Sharedsource.NewsMover.Pipelines;
 
     public class NewsMover
     {
-        private static readonly SynchronizedCollection<ID> _inProcess = new SynchronizedCollection<ID>();
-        private bool _legacyConfigLoaded = false;
+        private static readonly SynchronizedCollection<ID> InProcess = new SynchronizedCollection<ID>();
+        private bool _legacyConfigLoaded;
         private string _databaseName = "master";
-        private Database _database = null;
+        private Database _database;
 
         public string Database
         {
@@ -36,7 +36,7 @@ namespace Sitecore.Sharedsource.Tasks
             set
             {
                 _databaseName = value;
-                Sitecore.Diagnostics.Assert.IsNotNullOrEmpty(_databaseName, "Database");
+                Diagnostics.Assert.IsNotNullOrEmpty(_databaseName, "Database");
             }
         }
 
@@ -47,11 +47,10 @@ namespace Sitecore.Sharedsource.Tasks
         {
             get
             {
-                if (_database == null)
-                {
-                    _database = Sitecore.Configuration.Factory.GetDatabase(_databaseName);
-                    Sitecore.Diagnostics.Assert.IsNotNull(_database, this.Database);
-                }
+                if (_database != null) return _database;
+
+                _database = Configuration.Factory.GetDatabase(_databaseName);
+                Diagnostics.Assert.IsNotNull(_database, Database);
                 return _database;
             }
         }
@@ -98,7 +97,7 @@ namespace Sitecore.Sharedsource.Tasks
         /// <param name="configNode">The XML configuration node.</param>
         public virtual void AddTemplateConfiguration(XmlNode configNode)
         {
-            var templateConfig = TemplateConfigurationBuilder.Create(SitecoreDatabase, configNode);
+            var templateConfig = TemplateConfigurationBuilder.Create(configNode);
             if (templateConfig != null)
             {
                 Templates.Add(templateConfig.Template.ID, templateConfig);
@@ -114,21 +113,20 @@ namespace Sitecore.Sharedsource.Tasks
         {
             LoadLegacySettings();
 
-            Item item = GetItem(args);
+            var item = GetItem(args);
 
-            if (!string.Equals(item.Database.Name, Database, StringComparison.OrdinalIgnoreCase) || // if we are NOT in the supported database
-                !Templates.ContainsKey(item.TemplateID) ||  // if the template is NOT supported
+            if (!Templates.ContainsKey(item.TemplateID) ||  // if the template is NOT supported
                 item.IsStandardValues() || // if we are the standard value
-                _inProcess.Contains(item.ID))
+                InProcess.Contains(item.ID))
             {
                 return;
             }
 
-            _inProcess.Add(item.ID);
-            TemplateConfiguration config = Templates[item.TemplateID];
-            DateTime articleDate = EnsureAndGetDate(item, config.DateField);
+            InProcess.Add(item.ID);
+            var config = Templates[item.TemplateID];
+            var articleDate = EnsureAndGetDate(item, config.DateField);
             OrganizeItem(item, config, articleDate);
-            _inProcess.Remove(item.ID);
+            InProcess.Remove(item.ID);
         }
 
         /// <summary>
@@ -142,16 +140,15 @@ namespace Sitecore.Sharedsource.Tasks
             // we only want to do this once since this class is instantiated once by Sitecore 
             // and kept around for all usages (i.e. some sort of singleton)
 
-            if (!_legacyConfigLoaded)
+            if (_legacyConfigLoaded) return;
+
+            if (HasLegacyConfiguration)
             {
-                if (HasLegacyConfiguration)
-                {
-                    // create a new wrapper around the old config
-                    var config = new TemplateConfiguration(SitecoreDatabase, ArticleTemplate, DateField, YearTemplate, MonthTemplate, DayTemplate);
-                    Templates.Add(config.Template.ID, config);
-                }
-                _legacyConfigLoaded = true;
+                // create a new wrapper around the old config
+                var config = new TemplateConfiguration(SitecoreDatabase, ArticleTemplate, DateField, YearTemplate, MonthTemplate, DayTemplate);
+                Templates.Add(config.Template.ID, config);
             }
+            _legacyConfigLoaded = true;
         }
 
         /// <summary>
@@ -161,8 +158,8 @@ namespace Sitecore.Sharedsource.Tasks
         /// <returns></returns>
         protected Item GetItem(EventArgs args)
         {
-            Item item = Sitecore.Events.Event.ExtractParameter(args, 0) as Item;
-            Sitecore.Diagnostics.Assert.ArgumentNotNull(item, "item");
+            var item = Events.Event.ExtractParameter(args, 0) as Item;
+            Diagnostics.Assert.ArgumentNotNull(item, "item");
             return item;
         }
 
@@ -174,18 +171,17 @@ namespace Sitecore.Sharedsource.Tasks
         /// <returns></returns>
         protected DateTime EnsureAndGetDate(Item item, string dateFieldName)
         {
-            Sitecore.Data.Fields.DateField dateField = item.Fields[dateFieldName];
-            Sitecore.Diagnostics.Assert.IsNotNull(dateField, dateFieldName);
-            DateTime result = dateField.DateTime;
+            Data.Fields.DateField dateField = item.Fields[dateFieldName];
+            Diagnostics.Assert.IsNotNull(dateField, dateFieldName);
+            var result = dateField.DateTime;
 
             // if there is no value in the date field, then set it to now.
-            if (string.IsNullOrEmpty(dateField.InnerField.Value))
+            if (!string.IsNullOrEmpty(dateField.InnerField.Value)) return result;
+
+            using (new EditContext(item))
             {
-                using (new Sitecore.Data.Items.EditContext(item))
-                {
-                    dateField.Value = Sitecore.DateUtil.IsoNow;
-                    result = Sitecore.DateUtil.IsoDateToDateTime(dateField.InnerField.Value);
-                }
+                dateField.Value = DateUtil.IsoNow;
+                result = DateUtil.IsoDateToDateTime(dateField.InnerField.Value);
             }
 
             return result;
@@ -200,7 +196,7 @@ namespace Sitecore.Sharedsource.Tasks
         /// <param name="articleDate">The article date.</param>
         protected void OrganizeItem(Item item, TemplateConfiguration config, DateTime articleDate)
         {
-            Item root = GetRoot(item, config);
+            var root = GetRoot(item, config);
 
             // get/create the year folder
             root = GetOrCreateChild(root, config.YearFolder.Template, config.YearFolder.GetName(articleDate), config.SortOrder);
@@ -223,7 +219,7 @@ namespace Sitecore.Sharedsource.Tasks
             }
 
             // save the original location so we can clean up 
-            Item originalParent = item.Parent;
+            var originalParent = item.Parent;
 
             // move the item to the proper location
             item.MoveTo(root);
@@ -232,16 +228,15 @@ namespace Sitecore.Sharedsource.Tasks
             // keep walking up while we are a year/month/day
             while ((!originalParent.HasChildren) && IsItemYearMonthOrDay(originalParent, config))
             {
-                Item parent = originalParent.Parent;
+                var parent = originalParent.Parent;
                 originalParent.Delete();
                 originalParent = parent;
             }
 
-            if ((!Sitecore.Context.IsBackgroundThread) && Sitecore.Context.ClientPage.IsEvent)
-            {
-                var args = new MoveCompletedArgs() { Article = item, Root = item.Database.GetRootItem() };
-                CorePipeline.Run("NewsMover.MoveCompleted", args);
-            }
+            if ((Context.IsBackgroundThread) || !Context.ClientPage.IsEvent) return;
+
+            var args = new MoveCompletedArgs { Article = item, Root = item.Database.GetRootItem() };
+            CorePipeline.Run("NewsMover.MoveCompleted", args);
         }
 
         /// <summary>
@@ -253,7 +248,7 @@ namespace Sitecore.Sharedsource.Tasks
         /// <returns></returns>
         protected Item GetRoot(Item item, TemplateConfiguration config)
         {
-            Item parent = item.Parent;
+            var parent = item.Parent;
 
             while (Templates.ContainsKey(parent.TemplateID) || IsItemYearMonthOrDay(parent, config))
             {
@@ -261,12 +256,11 @@ namespace Sitecore.Sharedsource.Tasks
             }
 
             // enforce that sub-item sorting is set
-            if (config.SortOrder != SortOrder.None && parent[FieldIDs.SubitemsSorting] != config.SortOrder.ToDescription())
+            if (config.SortOrder == SortOrder.None || parent[FieldIDs.SubitemsSorting] == config.SortOrder.ToDescription()) return parent;
+
+            using (new EditContext(parent))
             {
-                using (new Sitecore.Data.Items.EditContext(parent))
-                {
-                    parent.Fields[FieldIDs.SubitemsSorting].Value = config.SortOrder.ToDescription();
-                }
+                parent.Fields[FieldIDs.SubitemsSorting].Value = config.SortOrder.ToDescription();
             }
 
             return parent;
@@ -278,22 +272,20 @@ namespace Sitecore.Sharedsource.Tasks
         /// <param name="parent">The parent.</param>
         /// <param name="childName">Name of the child.</param>
         /// <param name="template">The template.</param>
+        /// <param name="subItemSorting"></param>
         /// <returns></returns>
         protected Item GetOrCreateChild(Item parent, TemplateItem template, string childName, SortOrder subItemSorting)
         {
-            Item child = parent.Children[childName];
-            if (child == null)
-            {
-                child = parent.Add(childName, template);
-            }
+            var child = parent.Children[childName] ?? parent.Add(childName, template);
 
             // enforce that sub-item sorting is set
-            if (subItemSorting != SortOrder.None && child[FieldIDs.SubitemsSorting] != subItemSorting.ToDescription())
+            if (subItemSorting == SortOrder.None || child[FieldIDs.SubitemsSorting] == subItemSorting.ToDescription())
             {
-                using (new Sitecore.Data.Items.EditContext(child))
-                {
-                    child.Fields[FieldIDs.SubitemsSorting].Value = subItemSorting.ToDescription();
-                }
+                return child;
+            }
+            using (new EditContext(child))
+            {
+                child.Fields[FieldIDs.SubitemsSorting].Value = subItemSorting.ToDescription();
             }
 
             return child;
@@ -307,7 +299,7 @@ namespace Sitecore.Sharedsource.Tasks
         /// <returns>
         ///   <c>true</c> if [is item year month or day] [the specified item]; otherwise, <c>false</c>.
         /// </returns>
-        private bool IsItemYearMonthOrDay(Item item, TemplateConfiguration config)
+        private static bool IsItemYearMonthOrDay(Item item, TemplateConfiguration config)
         {
             return item.TemplateID == config.YearFolder.Template.ID
                     || (config.MonthFolder != null && item.TemplateID == config.MonthFolder.Template.ID)
