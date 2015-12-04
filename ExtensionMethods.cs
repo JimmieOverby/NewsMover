@@ -11,7 +11,7 @@
 
 using System;
 using System.ComponentModel;
-using System.Reflection;
+using System.Linq;
 using System.Xml;
 using Sitecore.Data.Items;
 
@@ -43,7 +43,13 @@ namespace Sitecore.Sharedsource.NewsMover
         /// <returns></returns>
         public static string GetAttributeWithDefault(this XmlNode configNode, string attributeName, string @default)
         {
-            return configNode.Attributes[attributeName] == null ? @default : configNode.Attributes[attributeName].Value.IsNullOrEmpty() ? @default : configNode.Attributes[attributeName].Value;
+            return configNode == null || configNode.Attributes == null
+                ? string.Empty
+                : (configNode.Attributes[attributeName] == null
+                    ? @default
+                    : configNode.Attributes[attributeName].Value.IsNullOrEmpty()
+                        ? @default
+                        : configNode.Attributes[attributeName].Value);
         }
     }
 
@@ -79,17 +85,11 @@ namespace Sitecore.Sharedsource.NewsMover
         /// <returns></returns>
         public static string ToDescription(this Enum en)
         {
-            Type type = en.GetType();
-            MemberInfo[] memInfo = type.GetMember(en.ToString());
-            if (memInfo != null && memInfo.Length > 0)
-            {
-                object[] attrs = memInfo[0].GetCustomAttributes(typeof(DescriptionAttribute), false);
-                if (attrs != null && attrs.Length > 0)
-                {
-                    return ((DescriptionAttribute)attrs[0]).Description;
-                }
-            }
-            return en.ToString();
+            var type = en.GetType();
+            var memInfo = type.GetMember(en.ToString());
+            if (memInfo.Length <= 0) return en.ToString();
+            var attrs = memInfo[0].GetCustomAttributes(typeof(DescriptionAttribute), false);
+            return attrs.Length > 0 ? ((DescriptionAttribute)attrs[0]).Description : en.ToString();
         }
 
         /// <summary>
@@ -98,26 +98,22 @@ namespace Sitecore.Sharedsource.NewsMover
         /// <typeparam name="T"></typeparam>
         /// <param name="theEnum">The enum.</param>
         /// <param name="value">The value.</param>
+        /// <param name="ignoreCase">StringComparison.OrdinalIgnoreCase or StringComparison.Ordinal</param>
         /// <param name="result">The result.</param>
         /// <returns></returns>
         public static bool TryParse<T>(this T theEnum, string value, bool ignoreCase, out T result)
         {
             result = theEnum;
-            foreach (string item in Enum.GetNames(typeof(T)))
+            if (Enum.GetNames(typeof(T)).Any(item => string.Equals(item, value, ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)))
             {
-                if (string.Equals(item, value, ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
-                {
-                    result = (T)Enum.Parse(typeof(T), value.ToString());
-                    return true;
-                }
-            }
-
-            if (Enum.IsDefined(typeof(T), System.Convert.ChangeType(value, (Enum.GetUnderlyingType(typeof(T))))))
-            {
-                result = (T)Enum.Parse(typeof(T), value.ToString());
+                result = (T)Enum.Parse(typeof(T), value);
                 return true;
             }
-            return false;
+
+            var type = System.Convert.ChangeType(value, (Enum.GetUnderlyingType(typeof (T))));
+            if (type == null || !Enum.IsDefined(typeof (T), type)) return false;
+            result = (T)Enum.Parse(typeof(T), value);
+            return true;
         }
     }
 }

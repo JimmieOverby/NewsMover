@@ -9,43 +9,52 @@
 // <url>http://trac.sitecore.net/NewsMover/</url>
 //-------------------------------------------------------------------------------------------------
 
+using System;
+
 namespace Sitecore.Sharedsource.Tasks
 {
     using System.Xml;
-    using Sitecore.Data;
-    using Sitecore.Data.Items;
-    using Sitecore.Sharedsource.NewsMover;
+    using Sharedsource.NewsMover;
 
     internal class TemplateConfigurationBuilder
     {
         /// <summary>
         /// Creates a template configuration from the XmlNode
         /// </summary>
-        /// <param name="database">The database.</param>
         /// <param name="configNode">The config node.</param>
         /// <returns></returns>
-        public static TemplateConfiguration Create(Database database, XmlNode configNode)
+        public static TemplateConfiguration Create(XmlNode configNode)
         {
-            Sitecore.Diagnostics.Assert.IsNotNull(database, "Database");
-            Sitecore.Diagnostics.Assert.IsNotNull(configNode, "XmlNode");
+            Diagnostics.Assert.IsNotNull(configNode, "XmlNode");
+            var databaseName = "master";
+            if (configNode["Database"] != null)
+            {
+                databaseName = configNode["Database"].InnerText;
+            }
+            var template = configNode.Attributes["id"].Value;
+            var yearTemplate = configNode["YearTemplate"].InnerText;
+            var yearFormat = configNode["YearTemplate"].GetAttributeWithDefault("formatString", "yyyy");
+            string monthTemplate = null;
+            string monthFormat = null;
+            string dayTemplate = null;
+            string dayFormat = null;
+            var dateField = configNode["DateField"].InnerText;
 
-            string template = configNode.Attributes["id"].Value;
-            string yearTemplate = configNode["YearTemplate"].InnerText;
-            string yearFormat = configNode["YearTemplate"].GetAttributeWithDefault("formatString", "yyyy");
-            string monthTemplate = null, monthFormat = null;
-            string dayTemplate = null, dayFormat = null;
-            string dateField = configNode["DateField"].InnerText;
+            Diagnostics.Assert.IsNotNullOrEmpty(databaseName, "DatabaseName");
+            Diagnostics.Assert.IsNotNullOrEmpty(template, "Template");
+            Diagnostics.Assert.IsNotNullOrEmpty(yearTemplate, "YearTemplate");
+            Diagnostics.Assert.IsNotNullOrEmpty(dateField, "DateField");
 
-            Sitecore.Diagnostics.Assert.IsNotNullOrEmpty(template, "Template");
-            Sitecore.Diagnostics.Assert.IsNotNullOrEmpty(yearTemplate, "YearTemplate");
-            Sitecore.Diagnostics.Assert.IsNotNullOrEmpty(dateField, "DateField");
+            var database = Configuration.Factory.GetDatabase(databaseName);
+
+            Diagnostics.Assert.IsNotNull(database, "Database");
 
             // make sure we have the template of the items we want to move
-            TemplateItem templateItem = database.Templates[template];
+            var templateItem = database.Templates[template];
 
             if (templateItem == null)
             {
-                Sitecore.Diagnostics.Log.Warn(string.Format("Template '{0}' not found.", template), configNode);
+                Diagnostics.Log.Warn(string.Format("Template '{0}' not found.", template), configNode);
                 return null;
             }
 
@@ -62,11 +71,11 @@ namespace Sitecore.Sharedsource.Tasks
             }
 
 
-            string sort = configNode.GetAttributeWithDefault("sort", null);
-            SortOrder s = SortOrder.None;
+            var sort = configNode.GetAttributeWithDefault("sort", null);
+            var s = SortOrder.None;
             if (!string.IsNullOrEmpty(sort))
             {
-                s.TryParse(sort, true, out s);
+                Enum.TryParse(sort, true, out s);
             }
 
             return new TemplateConfiguration(database, template, dateField, yearTemplate, monthTemplate, dayTemplate, s, yearFormat, monthFormat, dayFormat);

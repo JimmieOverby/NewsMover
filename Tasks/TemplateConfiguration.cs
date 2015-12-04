@@ -11,18 +11,20 @@
 
 namespace Sitecore.Sharedsource.Tasks
 {
-    using System;
-    using System.Xml;
-    using Sitecore.Data;
-    using Sitecore.Data.Items;
-    using Sitecore.Sharedsource.NewsMover;
+    using Data;
+    using Data.Items;
 
     public class TemplateConfiguration
     {
-        private Database _database;
-        private string _template, _yearTemplate, _monthTemplate, _dayTemplate;
-        private string _yearFormat = "yyyy", _monthFormat = "MM", _dayFormat = "dd";
-        
+        private readonly Database _database;
+        private readonly string _template;
+        private readonly string _yearTemplate;
+        private readonly string _monthTemplate;
+        private readonly string _dayTemplate;
+        private readonly string _yearFormat = "yyyy";
+        private readonly string _monthFormat = "MM";
+        private readonly string _dayFormat = "dd";
+
         /// <summary>
         /// Gets the template.
         /// </summary>
@@ -68,10 +70,10 @@ namespace Sitecore.Sharedsource.Tasks
         /// <param name="dayFormat">The day format.</param>
         internal TemplateConfiguration(Database database, string template, string dateField, string yearTemplate, string monthTemplate, string dayTemplate, SortOrder sort = SortOrder.None, string yearFormat = "yyyy", string monthFormat = "MM", string dayFormat = "dd")
         {
-            Sitecore.Diagnostics.Assert.IsNotNull(database, "Database");
-            Sitecore.Diagnostics.Assert.IsNotNullOrEmpty(template, "Template");
-            Sitecore.Diagnostics.Assert.IsNotNullOrEmpty(dateField, "DateField");
-            Sitecore.Diagnostics.Assert.IsNotNullOrEmpty(yearTemplate, "YearTemplate");
+            Diagnostics.Assert.IsNotNull(database, "Database");
+            Diagnostics.Assert.IsNotNullOrEmpty(template, "Template");
+            Diagnostics.Assert.IsNotNullOrEmpty(dateField, "DateField");
+            Diagnostics.Assert.IsNotNullOrEmpty(yearTemplate, "YearTemplate");
 
             _database = database;
             _template = template;
@@ -111,7 +113,7 @@ namespace Sitecore.Sharedsource.Tasks
             }
 
             // make sure we have a Month if we have a Day
-            Sitecore.Diagnostics.Assert.IsFalse(MonthFolder == null && DayFolder != null, "dayTemplate without monthTemplate");
+            Diagnostics.Assert.IsFalse(MonthFolder == null && DayFolder != null, "dayTemplate without monthTemplate");
         }
     }
 }

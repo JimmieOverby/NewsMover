@@ -12,7 +12,7 @@
 namespace Sitecore.Sharedsource.Tasks
 {
     using System;
-    using Sitecore.Data.Items;
+    using Data.Items;
 
     public class Folder
     {
@@ -33,8 +33,8 @@ namespace Sitecore.Sharedsource.Tasks
         /// <param name="format">The format.</param>
         public Folder(TemplateItem templateItem, string format)
         {
-            Sitecore.Diagnostics.Assert.IsNotNull(templateItem, "templateItem");
-            Sitecore.Diagnostics.Assert.IsNotNullOrEmpty(format, "format");
+            Diagnostics.Assert.IsNotNull(templateItem, "templateItem");
+            Diagnostics.Assert.IsNotNullOrEmpty(format, "format");
 
             Template = templateItem;
             FormatString = format;

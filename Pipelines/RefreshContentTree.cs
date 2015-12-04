@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Sitecore.Diagnostics;
 
 namespace Sitecore.Sharedsource.NewsMover.Pipelines
@@ -15,8 +12,8 @@ namespace Sitecore.Sharedsource.NewsMover.Pipelines
             Assert.ArgumentNotNull(args.Article, "Item");
             Assert.ArgumentNotNull(args.Root, "Root");
 
-            string message = String.Format("item:refreshchildren(id={0})", args.Root.ID.ToString());
-            Sitecore.Context.ClientPage.SendMessage(this, message);
+            var message = String.Format("item:refreshchildren(id={0})", args.Root.ID);
+            Context.ClientPage.SendMessage(this, message);
         }
     }
 }
