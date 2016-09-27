@@ -40,6 +40,13 @@ namespace Sitecore.Sharedsource.Tasks
             FormatString = format;
         }
 
+        public Folder(TemplateItem templateItem)
+        {
+            Sitecore.Diagnostics.Assert.IsNotNull(templateItem, "templateItem");
+
+            Template = templateItem;
+        }
+
         /// <summary>
         /// Gets the name of the folder.
         /// </summary>
@@ -48,6 +55,16 @@ namespace Sitecore.Sharedsource.Tasks
         public string GetName(DateTime date)
         {
             return date.ToString(FormatString);
+        }
+
+        /// <summary>
+        /// Gets the name of the folder.
+        /// </summary>
+        /// <param name="itemName">The itemName.</param>
+        /// <returns></returns>
+        public string GetName(string itemName)
+        {
+            return itemName[0].ToString();
         }
     }
 }

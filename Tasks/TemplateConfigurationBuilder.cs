@@ -24,29 +24,41 @@ namespace Sitecore.Sharedsource.Tasks
         /// <param name="database">The database.</param>
         /// <param name="configNode">The config node.</param>
         /// <returns></returns>
+        /// <summary>
         public static TemplateConfiguration Create(Database database, XmlNode configNode)
         {
             Sitecore.Diagnostics.Assert.IsNotNull(database, "Database");
             Sitecore.Diagnostics.Assert.IsNotNull(configNode, "XmlNode");
 
             string template = configNode.Attributes["id"].Value;
-            string yearTemplate = configNode["YearTemplate"].InnerText;
-            string yearFormat = configNode["YearTemplate"].GetAttributeWithDefault("formatString", "yyyy");
+            string yearTemplate = null;
+            string folderTemplate = null;
+            string yearFormat = null;
             string monthTemplate = null, monthFormat = null;
             string dayTemplate = null, dayFormat = null;
-            string dateField = configNode["DateField"].InnerText;
+            string dateField = null;
 
             Sitecore.Diagnostics.Assert.IsNotNullOrEmpty(template, "Template");
-            Sitecore.Diagnostics.Assert.IsNotNullOrEmpty(yearTemplate, "YearTemplate");
-            Sitecore.Diagnostics.Assert.IsNotNullOrEmpty(dateField, "DateField");
+            //Sitecore.Diagnostics.Assert.IsNotNullOrEmpty(yearTemplate, "YearTemplate");
+            //Sitecore.Diagnostics.Assert.IsNotNullOrEmpty(dateField, "DateField");
 
             // make sure we have the template of the items we want to move
             TemplateItem templateItem = database.Templates[template];
 
+            if (configNode["DateField"] != null)
+            {
+                dateField = configNode["DateField"].InnerText;
+            }
             if (templateItem == null)
             {
                 Sitecore.Diagnostics.Log.Warn(string.Format("Template '{0}' not found.", template), configNode);
                 return null;
+            }
+
+            if (configNode["YearTemplate"] != null)
+            {
+                monthTemplate = configNode["YearTemplate"].InnerText;
+                monthFormat = configNode["YearTemplate"].GetAttributeWithDefault("formatString", "yyyy");
             }
 
             if (configNode["MonthTemplate"] != null)
@@ -60,16 +72,19 @@ namespace Sitecore.Sharedsource.Tasks
                 dayTemplate = configNode["DayTemplate"].InnerText;
                 dayFormat = configNode["DayTemplate"].GetAttributeWithDefault("formatString", "dd");
             }
-
+            if (configNode["FolderTemplate"] != null)
+            {
+                folderTemplate = configNode["FolderTemplate"].InnerText;
+            }
 
             string sort = configNode.GetAttributeWithDefault("sort", null);
             SortOrder s = SortOrder.None;
             if (!string.IsNullOrEmpty(sort))
             {
-                s.TryParse(sort, true, out s);
+                EnumExtensions.TryParse(s, sort, true, out s);
             }
 
-            return new TemplateConfiguration(database, template, dateField, yearTemplate, monthTemplate, dayTemplate, s, yearFormat, monthFormat, dayFormat);
+            return new TemplateConfiguration(database, template, dateField, yearTemplate, monthTemplate, dayTemplate, folderTemplate, s, yearFormat, monthFormat, dayFormat);
         }
     }
 }
