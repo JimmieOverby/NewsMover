@@ -63,6 +63,8 @@ namespace Sitecore.Sharedsource.Tasks
 
         public string DayTemplate { get; set; }
 
+        public string FolderTemplate { get; set; }
+
         public string DateField { get; set; }
 
         public string ArticleTemplate { get; set; }
@@ -126,8 +128,16 @@ namespace Sitecore.Sharedsource.Tasks
 
             _inProcess.Add(item.ID);
             TemplateConfiguration config = Templates[item.TemplateID];
-            DateTime articleDate = EnsureAndGetDate(item, config.DateField);
-            OrganizeItem(item, config, articleDate);
+            if (config.DateField != null)
+            {
+                DateTime articleDate = EnsureAndGetDate(item, config.DateField);
+                OrganizeItem(item, config, articleDate);
+
+            }
+            else
+            {
+                OrganizeItem(item, config, item.Name);
+            }
             _inProcess.Remove(item.ID);
         }
 
@@ -147,7 +157,7 @@ namespace Sitecore.Sharedsource.Tasks
                 if (HasLegacyConfiguration)
                 {
                     // create a new wrapper around the old config
-                    var config = new TemplateConfiguration(SitecoreDatabase, ArticleTemplate, DateField, YearTemplate, MonthTemplate, DayTemplate);
+                    var config = new TemplateConfiguration(SitecoreDatabase, ArticleTemplate, DateField, YearTemplate, MonthTemplate, DayTemplate, FolderTemplate);
                     Templates.Add(config.Template.ID, config);
                 }
                 _legacyConfigLoaded = true;
@@ -244,6 +254,35 @@ namespace Sitecore.Sharedsource.Tasks
             }
         }
 
+
+        protected void OrganizeItem(Item item, TemplateConfiguration config, string itemName)
+        {
+            Item root = GetRootItem(item, config);
+
+            // get/create the year folder
+            root = GetOrCreateChild(root, config.Folder.Template, config.Folder.GetName(itemName), config.SortOrder);
+
+            // if the item is already where it should be, then bail out
+            if (string.Equals(item.Parent.Paths.FullPath, root.Paths.FullPath, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            // save the original location so we can clean up 
+            Item originalParent = item.Parent;
+
+            // move the item to the proper location
+            item.MoveTo(root);
+            
+
+            if ((!Sitecore.Context.IsBackgroundThread) && Sitecore.Context.ClientPage.IsEvent)
+            {
+                var args = new MoveCompletedArgs() { Article = item, Root = item.Database.GetRootItem() };
+                CorePipeline.Run("ItemMover.MoveCompleted", args);
+            }
+        }
+
+
         /// <summary>
         /// Gets the root of where we start organization.
         /// i.e. the parent of the 'year' node
@@ -256,6 +295,28 @@ namespace Sitecore.Sharedsource.Tasks
             Item parent = item.Parent;
 
             while (Templates.ContainsKey(parent.TemplateID) || IsItemYearMonthOrDay(parent, config))
+            {
+                parent = parent.Parent;
+            }
+
+            // enforce that sub-item sorting is set
+            if (config.SortOrder != SortOrder.None && parent[FieldIDs.SubitemsSorting] != config.SortOrder.ToDescription())
+            {
+                using (new Sitecore.Data.Items.EditContext(parent))
+                {
+                    parent.Fields[FieldIDs.SubitemsSorting].Value = config.SortOrder.ToDescription();
+                }
+            }
+
+            return parent;
+        }
+
+
+        protected Item GetRootItem(Item item, TemplateConfiguration config)
+        {
+            Item parent = item.Parent;
+
+            while (Templates.ContainsKey(parent.TemplateID) || IsItemFolderItem(parent, config))
             {
                 parent = parent.Parent;
             }
@@ -312,6 +373,12 @@ namespace Sitecore.Sharedsource.Tasks
             return item.TemplateID == config.YearFolder.Template.ID
                     || (config.MonthFolder != null && item.TemplateID == config.MonthFolder.Template.ID)
                     || (config.DayFolder != null && item.TemplateID == config.DayFolder.Template.ID);
+        }
+
+        private bool IsItemFolderItem(Item item, TemplateConfiguration config)
+        {
+            return item.TemplateID == config.Folder.Template.ID;
+
         }
     }
 }

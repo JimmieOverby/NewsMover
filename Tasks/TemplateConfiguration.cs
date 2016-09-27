@@ -20,7 +20,7 @@ namespace Sitecore.Sharedsource.Tasks
     public class TemplateConfiguration
     {
         private Database _database;
-        private string _template, _yearTemplate, _monthTemplate, _dayTemplate;
+        private string _template, _yearTemplate, _monthTemplate, _dayTemplate, _folderTemplate;
         private string _yearFormat = "yyyy", _monthFormat = "MM", _dayFormat = "dd";
         
         /// <summary>
@@ -32,6 +32,11 @@ namespace Sitecore.Sharedsource.Tasks
         /// Gets the year folder.
         /// </summary>
         public Folder YearFolder { get; private set; }
+
+        /// <summary>
+        /// Gets the folder.
+        /// </summary>
+        public Folder Folder { get; private set; }
 
         /// <summary>
         /// Gets the month folder.
@@ -66,12 +71,12 @@ namespace Sitecore.Sharedsource.Tasks
         /// <param name="yearFormat">The year format.</param>
         /// <param name="monthFormat">The month format.</param>
         /// <param name="dayFormat">The day format.</param>
-        internal TemplateConfiguration(Database database, string template, string dateField, string yearTemplate, string monthTemplate, string dayTemplate, SortOrder sort = SortOrder.None, string yearFormat = "yyyy", string monthFormat = "MM", string dayFormat = "dd")
+        internal TemplateConfiguration(Database database, string template, string dateField, string yearTemplate, string monthTemplate, string dayTemplate, string folderTemplate, SortOrder sort = SortOrder.None, string yearFormat = "yyyy", string monthFormat = "MM", string dayFormat = "dd")
         {
             Sitecore.Diagnostics.Assert.IsNotNull(database, "Database");
             Sitecore.Diagnostics.Assert.IsNotNullOrEmpty(template, "Template");
-            Sitecore.Diagnostics.Assert.IsNotNullOrEmpty(dateField, "DateField");
-            Sitecore.Diagnostics.Assert.IsNotNullOrEmpty(yearTemplate, "YearTemplate");
+            //Sitecore.Diagnostics.Assert.IsNotNullOrEmpty(dateField, "DateField");
+            //Sitecore.Diagnostics.Assert.IsNotNullOrEmpty(yearTemplate, "YearTemplate");
 
             _database = database;
             _template = template;
@@ -81,6 +86,7 @@ namespace Sitecore.Sharedsource.Tasks
             _yearFormat = yearFormat;
             _monthFormat = monthFormat;
             _dayFormat = dayFormat;
+            _folderTemplate = folderTemplate;
             DateField = dateField;
             SortOrder = sort;
 
@@ -95,8 +101,17 @@ namespace Sitecore.Sharedsource.Tasks
             // make sure we have the template of the items we want to move
             Template = _database.Templates[_template];
 
-            // we at least need a year template
-            YearFolder = new Folder(_database.Templates[_yearTemplate], _yearFormat);
+            if (!string.IsNullOrEmpty(_folderTemplate))
+            {
+                // we at least need a year template
+                Folder = new Folder(_database.Templates[_folderTemplate]);
+            }
+
+            if (!string.IsNullOrEmpty(_yearTemplate))
+            {
+                // we at least need a year template
+                YearFolder = new Folder(_database.Templates[_yearTemplate], _yearFormat);
+            }
 
             // we may want to organize in months too
             if (!string.IsNullOrEmpty(_monthTemplate))
